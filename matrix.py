@@ -47,15 +47,15 @@ def ag_mask(npz, spec):
         keep[m] = True if spec["seqs"][c].__len__() < MIN_CHAIN_LEN else mean_pl[m] >= PLDDT_CUT
     return keep, chains
 
-def load_ca(pdb_id):
-    """Newest/largest <pdb>_ca_<n>.npz in OUT_DIR (the full run wins)."""
-    files = list(OUT_DIR.glob(f"{pdb_id}_ca_*.npz"))
-    if not files:
-        raise FileNotFoundError(f"no {pdb_id}_ca_*.npz in {OUT_DIR}")
-    return np.load(max(files, key=lambda p: int(p.stem.rsplit("_", 1)[1])))
+def load_ca(pdb_id, run="multi"):
+    """<pdb>_ca_<run>.npz in OUT_DIR (run: multi / single / test)."""
+    f = OUT_DIR / f"{pdb_id}_ca_{run}.npz"
+    if not f.exists():
+        raise FileNotFoundError(f"no {f}")
+    return np.load(f)
 
-def matrix_A(pdb_id, residue_tsv, out_prefix=None):
-    npz = load_ca(pdb_id)
+def matrix_A(pdb_id, residue_tsv, out_prefix=None, run="multi"):
+    npz = load_ca(pdb_id, run)
     spec = build_spec(residue_tsv, pdb_id)
     fit, ag = npz["fit"].astype(np.float64), npz["ag"].astype(np.float64)
     assert not np.isnan(fit).any() and not np.isnan(ag).any()
@@ -78,6 +78,12 @@ def matrix_A(pdb_id, residue_tsv, out_prefix=None):
     R, cP, cQ = kabsch(fit, mean_ref)
     ag_fit = apply(ag_k, R, cP, cQ)
 
+    prefix = out_prefix or pdb_id
+    np.savez_compressed(f"{prefix}_frame.npz",
+                        mean_ref=mean_ref,   # (k,3) framework reference
+                        keep=keep,           # antigen mask
+                        ag_fit=ag_fit)       # (n,m,3) fitted antigen of the 2500 models
+
     # matrix A: plain RMSD between fitted antigen coordinates
     n, m = ag_fit.shape[:2]
     D = squareform(pdist(ag_fit.reshape(n, -1)) / np.sqrt(m)).astype(np.float32)
@@ -98,8 +104,7 @@ def matrix_A(pdb_id, residue_tsv, out_prefix=None):
     q = np.percentile(D[iu], [5, 50, 95])
     print(f"pairwise RMSD: 5% {q[0]:.2f}  median {q[1]:.2f}  95% {q[2]:.2f} Å")
 
-    prefix = out_prefix or str(OUT_DIR / f"{pdb_id}_matrixA_{n}")
-    np.save(f"{prefix}.npy", D)
+    np.save(f"{prefix}_matrixA.npy", D)
     np.save(f"{prefix}_agmask.npy", keep)
     return D, keep
 

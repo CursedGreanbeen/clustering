@@ -39,12 +39,10 @@ def grid(D, seeds, sizes=(10, 15, 25), min_samples=5, epsilon=0.0, method="eom")
     return results
 
 
-def cluster_complex(pdb_id, min_cluster_size=15, min_samples=5, epsilon=0.0, method="eom"):
-    mats = [p for p in OUT_DIR.glob(f"{pdb_id}_matrixA_*.npy") if "agmask" not in p.stem]
-    mat = max(mats, key=lambda p: int(p.stem.rsplit("_", 1)[1]))
-    n = int(mat.stem.rsplit("_", 1)[1])
-    D = np.load(mat)
-    npz = np.load(OUT_DIR / f"{pdb_id}_ca_{n}.npz")
+def cluster_complex(pdb_id, run="multi", out_prefix=None, min_cluster_size=15, min_samples=5, epsilon=0.0, method="eom"):
+    prefix = out_prefix or pdb_id
+    D = np.load(f"{prefix}_matrixA.npy")
+    npz = np.load(OUT_DIR / f"{pdb_id}_ca_{run}.npz")
     seeds, samples = npz["seed"], npz["sample"]
 
     grid(D, seeds, min_samples=min_samples, epsilon=epsilon, method=method)
@@ -55,9 +53,10 @@ def cluster_complex(pdb_id, min_cluster_size=15, min_samples=5, epsilon=0.0, met
           f"eps={epsilon}, {method}):")
     print(summ.to_string(index=False) if len(summ) else "no clusters found")
 
+    tag = "" if method == "eom" else f"_{method}"
     pd.DataFrame({"model": np.arange(len(labels)), "seed": seeds, "sample": samples,
-                  "cluster": labels, "prob": prob}).to_csv(OUT_DIR / f"{pdb_id}_labels_{n}.tsv", sep="\t", index=False)
-    summ.to_csv(OUT_DIR / f"{pdb_id}_clusters_{n}.tsv", sep="\t", index=False)
+                  "cluster": labels, "prob": prob}).to_csv(OUT_DIR / f"{pdb_id}_labels{tag}.tsv", sep="\t", index=False)
+    summ.to_csv(OUT_DIR / f"{pdb_id}_clusters{tag}.tsv", sep="\t", index=False)
     return labels, prob, summ
 
 

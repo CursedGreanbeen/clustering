@@ -57,7 +57,7 @@ def parse_model(cif_path, spec):
         out[g + "_plddt"] = np.asarray(b, np.float32)
     return out
 
-def parse_complex(root, pdb_id, residue_tsv, workers=1, limit=None):
+def parse_complex(root, pdb_id, residue_tsv, run="multi", workers=1, limit=None, out_dir=OUT_DIR):
     spec = build_spec(residue_tsv, pdb_id)
     cifs = sorted(Path(root, pdb_id).glob("seed-*_sample-*/*_model.cif"))
     if limit:
@@ -68,6 +68,8 @@ def parse_complex(root, pdb_id, residue_tsv, workers=1, limit=None):
         with ProcessPoolExecutor(workers) as ex:
             rows = list(ex.map(parse_model, cifs, repeat(spec), chunksize=10))
     arrays = {k: np.stack([r[k] for r in rows]) for k in rows[0]}
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(OUT_DIR / f"{pdb_id}_ca_{len(cifs)}.npz", **arrays)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{pdb_id}_ca_{run}.npz"
+    np.savez_compressed(path, **arrays)
+    print(f"{pdb_id} run={run}: {len(cifs)} models -> {path}")
     return arrays
