@@ -24,9 +24,9 @@ def loo_thresholds(D, labels, seeds, k=K, pct=PCT):
     return {c: np.percentile(med[labels == c], pct) for c in np.unique(labels) if c != -1}
 
 def assign_single(pdb_id, tag="", k=K):
-    fr = np.load(f"{pdb_id}_frame.npz")
-    D = np.load(f"{pdb_id}_matrixA.npy")
-    lab = pd.read_csv(f"{pdb_id}_labels{tag}.tsv", sep="\t")
+    fr = np.load(OUT_DIR / f"{pdb_id}_frame.npz")
+    D = np.load(OUT_DIR / f"{pdb_id}_matrixA.npy")
+    lab = pd.read_csv(OUT_DIR / f"{pdb_id}_labels{tag}.tsv", sep="\t")
     labels, seeds = lab.cluster.values, lab.seed.values
     single = np.load(OUT_DIR / f"{pdb_id}_ca_single.npz")
 
@@ -40,7 +40,7 @@ def assign_single(pdb_id, tag="", k=K):
     d = cdist(ag_s.reshape(len(ag_s), -1), fr["ag_fit"].reshape(n, -1)) / np.sqrt(m)
 
     thr = loo_thresholds(D, labels, seeds, k)
-    summ = pd.read_csv(f"{pdb_id}_clusters{tag}.tsv", sep="\t").set_index("cluster")
+    summ = pd.read_csv(OUT_DIR / f"{pdb_id}_clusters{tag}.tsv", sep="\t").set_index("cluster")
     rows = []
     for i in range(len(ag_s)):
         c, med = knn_vote(d[i], labels, k)
@@ -52,7 +52,7 @@ def assign_single(pdb_id, tag="", k=K):
                      "min_dist": round(float(d[i].min()), 3)})
     out = pd.DataFrame(rows)
     print(out.to_string(index=False))
-    out.to_csv(f"{pdb_id}_single_assign{tag}.tsv", sep="\t", index=False)
+    out.to_csv(OUT_DIR / f"{pdb_id}_single_assign{tag}.tsv", sep="\t", index=False)
     return out
 
 if __name__ == "__main__":

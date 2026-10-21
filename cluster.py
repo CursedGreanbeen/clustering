@@ -41,7 +41,7 @@ def grid(D, seeds, sizes=(10, 15, 25), min_samples=5, epsilon=0.0, method="eom")
 
 def cluster_complex(pdb_id, run="multi", out_prefix=None, min_cluster_size=15, min_samples=5, epsilon=0.0, method="eom"):
     prefix = out_prefix or pdb_id
-    D = np.load(f"{prefix}_matrixA.npy")
+    D = np.load(OUT_DIR / f"{prefix}_matrixA.npy")
     npz = np.load(OUT_DIR / f"{pdb_id}_ca_{run}.npz")
     seeds, samples = npz["seed"], npz["sample"]
 

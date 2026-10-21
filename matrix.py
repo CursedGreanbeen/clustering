@@ -79,7 +79,7 @@ def matrix_A(pdb_id, residue_tsv, out_prefix=None, run="multi"):
     ag_fit = apply(ag_k, R, cP, cQ)
 
     prefix = out_prefix or pdb_id
-    np.savez_compressed(f"{prefix}_frame.npz",
+    np.savez_compressed(OUT_DIR / f"{prefix}_frame.npz",
                         mean_ref=mean_ref,   # (k,3) framework reference
                         keep=keep,           # antigen mask
                         ag_fit=ag_fit)       # (n,m,3) fitted antigen of the 2500 models
@@ -104,8 +104,8 @@ def matrix_A(pdb_id, residue_tsv, out_prefix=None, run="multi"):
     q = np.percentile(D[iu], [5, 50, 95])
     print(f"pairwise RMSD: 5% {q[0]:.2f}  median {q[1]:.2f}  95% {q[2]:.2f} Å")
 
-    np.save(f"{prefix}_matrixA.npy", D)
-    np.save(f"{prefix}_agmask.npy", keep)
+    np.save(OUT_DIR / f"{prefix}_matrixA.npy", D)
+    np.save(OUT_DIR / f"{prefix}_agmask.npy", keep)
     return D, keep
 
 if __name__ == "__main__":
